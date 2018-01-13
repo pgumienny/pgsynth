@@ -10,12 +10,44 @@ import Cocoa
 import CoreAudio
 import AudioToolbox
 import AudioUnit
-var sounds: Set = [-1]
+var sounds = [Int: Sound]()
 var waveType = 1
+var currentTime: Double = 0
+
+let SamplingRate = 44100
 
 struct Synth {
     var outputUnit: AudioUnit? = nil
     var startingFrameCount: Double = 0
+}
+
+struct ADSR {
+    var attackTime: Double = 0.05
+    var decayTime: Double = 0.1
+    var releaseTime: Double = 0.2
+    var attackValue: Double = 2.0
+}
+
+var adsr : ADSR = ADSR()
+
+class Sound: NSObject {
+    var pitch: Double
+    var startTime: Double
+    init(pitch pitch_: Double, startTime startTime_: Double) {
+        pitch = pitch_
+        startTime = startTime_
+    }
+    func getEnvelope(time: Double) -> Double {
+        let deltaTime = time - startTime
+        if deltaTime < adsr.attackTime {
+          return adsr.attackValue *  deltaTime / adsr.attackTime
+        }
+        if deltaTime < adsr.decayTime + adsr.attackTime {
+            let tmpDelta = deltaTime - adsr.attackTime
+            return 1 + (adsr.attackValue - 1) *  (adsr.decayTime - tmpDelta) / adsr.decayTime
+        }
+        return 1
+    }
 }
 
 let semaphore = DispatchSemaphore(value: 1)
@@ -36,20 +68,24 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
     var synth = inRefCon.assumingMemoryBound(to: Synth.self)
     
     var j = synth.pointee.startingFrameCount
-
-
+    currentTime = Double(j) / Double(SamplingRate)
     
     for frame in 0..<inNumberFrames {
         var buffers = UnsafeMutableAudioBufferListPointer(ioData)
         var value = Float32(0)
         semaphore.wait()
-        for note in sounds {
-            var sineFrequency = pow(2.0, Double(note)/12) * 440
-            let cycleLength = 44100 / sineFrequency
+        for (note, sound) in sounds {
+            var sineFrequency = sound.pitch
+            let cycleLength = Double(SamplingRate) / sineFrequency
             if waveType == 0 {
-                value += Float32(sin(2 * .pi * (j / cycleLength))) / 12
+                value += Float32(sound.getEnvelope(time: currentTime)) * Float32(sin(2 * .pi * (j / cycleLength))) / 12
             } else if waveType == 1 {
-                value += Float32(Int(j) % Int(cycleLength)) / (12 * Float32(cycleLength))
+                value += Float32(sound.getEnvelope(time: currentTime)) * Float32(Int(j) % Int(cycleLength)) / (12 * Float32(cycleLength))
+            }
+            if Int(j) % 1000 == 0 {
+                Swift.print("currenTime: \(currentTime))!")
+                Swift.print("soundtie: \(sound.startTime - currentTime))!")
+                Swift.print("Env val: \(sound.getEnvelope(time: currentTime))!")
             }
         }
         semaphore.signal()
@@ -58,6 +94,7 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
         buffers![1].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
         
         j += 1
+        currentTime = Double(j) / Double(SamplingRate)
     }
 
     synth.pointee.startingFrameCount = j
@@ -83,13 +120,13 @@ let keyPressCallback: Callback = {event -> () in
         note = 10
     case 40: // k
         note = 12
-    case 37:
+    case 37: // l
         note = 14
-    case 41:
+    case 41: // ;
         note = 15
-    case 39:
+    case 39: // '
         note = 17
-    case 42:
+    case 42: // \
         note = 19
     default:
         note = 0
@@ -98,10 +135,13 @@ let keyPressCallback: Callback = {event -> () in
     
     semaphore.wait()
     if event.type == NSEvent.EventType.keyDown {
-        sounds.insert(note)
+        if sounds[note] == nil {
+            var s = Sound(pitch: pow(2.0, Double(note)/12) * 440, startTime: currentTime)
+            sounds[note] = s
+        }
     }
     if event.type == NSEvent.EventType.keyUp {
-        sounds.remove(note)
+        sounds[note] = nil
     }
     semaphore.signal()
     
@@ -136,7 +176,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var synth: Synth?
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        sounds.remove(-1)
         let window:NSWindow? = NSApplication.shared.windows.first
         (window as! SynthWindow).addKeyEventCallback(callback: keyPressCallback)
         
