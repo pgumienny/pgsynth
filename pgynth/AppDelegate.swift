@@ -33,20 +33,35 @@ var adsr : ADSR = ADSR()
 class Sound: NSObject {
     var pitch: Double
     var startTime: Double
+    var isDead: Bool
+    var shouldDelete: Bool
     init(pitch pitch_: Double, startTime startTime_: Double) {
         pitch = pitch_
         startTime = startTime_
+        isDead = false
+        shouldDelete = false
     }
     func getEnvelope(time: Double) -> Double {
         let deltaTime = time - startTime
-        if deltaTime < adsr.attackTime {
-          return adsr.attackValue *  deltaTime / adsr.attackTime
+        if !isDead {
+            if deltaTime < adsr.attackTime {
+              return adsr.attackValue *  deltaTime / adsr.attackTime
+            }
+            if deltaTime < adsr.decayTime + adsr.attackTime {
+                let tmpDelta = deltaTime - adsr.attackTime
+                return 1 + (adsr.attackValue - 1) *  (adsr.decayTime - tmpDelta) / adsr.decayTime
+            } else {
+                return 1
+            }
+        } else {
+            if deltaTime < adsr.releaseTime {
+                return (adsr.releaseTime - deltaTime) / adsr.releaseTime
+            } else {
+                shouldDelete = true
+                return 0
+            }
+
         }
-        if deltaTime < adsr.decayTime + adsr.attackTime {
-            let tmpDelta = deltaTime - adsr.attackTime
-            return 1 + (adsr.attackValue - 1) *  (adsr.decayTime - tmpDelta) / adsr.decayTime
-        }
-        return 1
     }
 }
 
@@ -80,14 +95,23 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
             if waveType == 0 {
                 value += Float32(sound.getEnvelope(time: currentTime)) * Float32(sin(2 * .pi * (j / cycleLength))) / 12
             } else if waveType == 1 {
-                value += Float32(sound.getEnvelope(time: currentTime)) * Float32(Int(j) % Int(cycleLength)) / (12 * Float32(cycleLength))
+                value += Float32(sound.getEnvelope(time: currentTime)) * Float32(Int(j) % Int(cycleLength)) / (20 * Float32(cycleLength))
             }
-            if Int(j) % 1000 == 0 {
-                Swift.print("currenTime: \(currentTime))!")
-                Swift.print("soundtie: \(sound.startTime - currentTime))!")
-                Swift.print("Env val: \(sound.getEnvelope(time: currentTime))!")
-            }
+//            if Int(j) % 1000 == 0 {
+//                Swift.print("currenTime: \(currentTime))!")
+//                Swift.print("soundtie: \(sound.startTime - currentTime))!")
+//                Swift.print("Env val: \(sound.getEnvelope(time: currentTime))!")
+//            }
         }
+        sounds = sounds.filter({ (key: Int, value: Sound) -> Bool in
+            value.shouldDelete == false
+        })
+        
+//
+//        if Int(j) % 1000 == 0 {
+//            Swift.print("sounds.cout: \(sounds.count))!")
+//        }
+        
         semaphore.signal()
         
         buffers![0].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
@@ -135,13 +159,14 @@ let keyPressCallback: Callback = {event -> () in
     
     semaphore.wait()
     if event.type == NSEvent.EventType.keyDown {
-        if sounds[note] == nil {
+        if sounds[note] == nil || (sounds[note]?.isDead)! {
             var s = Sound(pitch: pow(2.0, Double(note)/12) * 440, startTime: currentTime)
             sounds[note] = s
         }
     }
     if event.type == NSEvent.EventType.keyUp {
-        sounds[note] = nil
+        sounds[note]?.isDead = true
+        sounds[note]?.startTime = currentTime
     }
     semaphore.signal()
     
