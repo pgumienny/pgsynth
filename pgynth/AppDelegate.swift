@@ -10,42 +10,117 @@ import Cocoa
 import CoreAudio
 import AudioToolbox
 import AudioUnit
-var sounds = [Int: Sound]()
-var waveType = 1
-var currentTime: Double = 0
 
-let SamplingRate = 44100
+var synth: Synth?
+
 
 struct Synth {
     var outputUnit: AudioUnit? = nil
     var startingFrameCount: Double = 0
+    var sounds = [UInt8: Sound]()
+    var waveType = 1
+    var currentTime: Double = 0
+    let SamplingRate = 44100
+    var adsr : ADSR = ADSR()
 }
 
 struct ADSR {
     var attackTime: Double = 0.05
     var decayTime: Double = 0.1
-    var releaseTime: Double = 0.2
-    var attackValue: Double = 2.0
+    var releaseTime: Double = 0.3
+    var attackValue: Double = 2.5
 }
 
-var adsr : ADSR = ADSR()
+
+var midiPort = MIDIPortRef()
+var midiClient = MIDIClientRef()
+
+let midiCallback: MIDIReadProc = { (pktlist, synthRef, srcConnRefCon) -> Void in
+    var synth = synthRef?.assumingMemoryBound(to: Synth.self)
+    var packets = pktlist.pointee
+    Swift.print("midi incoming")
+    
+    let packet:MIDIPacket = packets.packet
+    
+    var ap = UnsafeMutablePointer<MIDIPacket>.allocate(capacity: 1)
+    ap.initialize(to:packet)
+    
+    for _ in 0 ..< packets.numPackets {
+        let p = ap.pointee
+        
+        handleNote(note: p, synthPointer: synth)
+        
+        ap = MIDIPacketNext(ap)
+    }
+    
+}
+
+func handleNote( note:MIDIPacket, synthPointer: UnsafeMutablePointer<Synth>?) {
+//    var synth = synthPointer!.pointee
+    print("timestamp \(note.timeStamp)", terminator: "")
+    let operationType = note.data.0 & 0xF0
+    let noteNumber = note.data.1
+    let velocity = note.data.2
+    
+    semaphore.wait()
+    if operationType == 0x80 ||  (operationType == 0x90 && velocity == 0) {
+        synth!.sounds[noteNumber]?.isDead = true
+        synth!.sounds[noteNumber]?.startTime = synth!.currentTime
+    } else if operationType == 0x90 {
+        if synth!.sounds[noteNumber] == nil || (synth!.sounds[noteNumber]?.isDead)! {
+            Swift.print("adding new note")
+            let pitch = pow(2.0, (Double(noteNumber) - 69)/12) * 440
+            let s = Sound(pitch: pitch, startTime: synth!.currentTime, velocity: Double(velocity)/255)
+            Swift.print("sounds.cout: \(synth!.sounds.count))!")
+            Swift.print("sound pitch: \(pitch)")
+            synth!.sounds[noteNumber] = s
+        }
+    }
+
+    semaphore.signal()
+    
+    var hex = String(format:"0x%X", note.data.0)
+    print(" \(hex)", terminator: "")
+    hex = String(format:"0x%X", note.data.1)
+    print(" \(hex)", terminator: "")
+    hex = String(format:"0x%X", note.data.2)
+    print(" \(hex)")
+}
+
+func initMidi() {
+    MIDIClientCreate("pgclient" as CFString, nil, nil, &midiClient)
+    MIDIInputPortCreate(midiClient, "pgport" as CFString, midiCallback, &synth, &midiPort)
+    
+    if MIDIGetNumberOfSources() == 0 {
+        Swift.print("no external midi devices connected")
+        return
+    }
+    
+    Swift.print("connecting MIDI")
+    
+    MIDIPortConnectSource(midiPort, MIDIGetSource(0), nil)
+}
 
 class Sound: NSObject {
     var pitch: Double
     var startTime: Double
     var isDead: Bool
+    var velocity: Double
     var shouldDelete: Bool
-    init(pitch pitch_: Double, startTime startTime_: Double) {
+    init(pitch pitch_: Double, startTime startTime_: Double, velocity velocity_: Double) {
         pitch = pitch_
         startTime = startTime_
+        velocity = velocity_
         isDead = false
         shouldDelete = false
     }
-    func getEnvelope(time: Double) -> Double {
+    
+    func getEnvelopeHelper(time: Double) -> Double {
         let deltaTime = time - startTime
+        let adsr = synth!.adsr
         if !isDead {
             if deltaTime < adsr.attackTime {
-              return adsr.attackValue *  deltaTime / adsr.attackTime
+              return adsr.attackValue * deltaTime / adsr.attackTime
             }
             if deltaTime < adsr.decayTime + adsr.attackTime {
                 let tmpDelta = deltaTime - adsr.attackTime
@@ -62,6 +137,9 @@ class Sound: NSObject {
             }
 
         }
+    }
+    func getEnvelope(time: Double) -> Double {
+        return self.velocity * getEnvelopeHelper(time: time)
     }
 }
 
@@ -83,19 +161,19 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
     var synth = inRefCon.assumingMemoryBound(to: Synth.self)
     
     var j = synth.pointee.startingFrameCount
-    currentTime = Double(j) / Double(SamplingRate)
+    synth.pointee.currentTime = Double(j) / Double(synth.pointee.SamplingRate)
     
     for frame in 0..<inNumberFrames {
         var buffers = UnsafeMutableAudioBufferListPointer(ioData)
         var value = Float32(0)
         semaphore.wait()
-        for (note, sound) in sounds {
+        for (note, sound) in synth.pointee.sounds {
             var sineFrequency = sound.pitch
-            let cycleLength = Double(SamplingRate) / sineFrequency
-            if waveType == 0 {
-                value += Float32(sound.getEnvelope(time: currentTime)) * Float32(sin(2 * .pi * (j / cycleLength))) / 12
-            } else if waveType == 1 {
-                value += Float32(sound.getEnvelope(time: currentTime)) * Float32(Int(j) % Int(cycleLength)) / (20 * Float32(cycleLength))
+            let cycleLength = Double(synth.pointee.SamplingRate) / sineFrequency
+            if synth.pointee.waveType == 0 {
+                value += Float32(sound.getEnvelope(time: synth.pointee.currentTime)) * Float32(sin(2 * .pi * (j / cycleLength))) / 12
+            } else if synth.pointee.waveType == 1 {
+                value += Float32(sound.getEnvelope(time: synth.pointee.currentTime)) * Float32(Int(j) % Int(cycleLength)) / (20 * Float32(cycleLength))
             }
 //            if Int(j) % 1000 == 0 {
 //                Swift.print("currenTime: \(currentTime))!")
@@ -103,7 +181,7 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
 //                Swift.print("Env val: \(sound.getEnvelope(time: currentTime))!")
 //            }
         }
-        sounds = sounds.filter({ (key: Int, value: Sound) -> Bool in
+        synth.pointee.sounds = synth.pointee.sounds.filter({ (key: UInt8, value: Sound) -> Bool in
             value.shouldDelete == false
         })
         
@@ -118,7 +196,7 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
         buffers![1].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
         
         j += 1
-        currentTime = Double(j) / Double(SamplingRate)
+        synth.pointee.currentTime = Double(j) / Double(synth.pointee.SamplingRate)
     }
 
     synth.pointee.startingFrameCount = j
@@ -126,7 +204,7 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
 }
 
 let keyPressCallback: Callback = {event -> () in
-    var note = 0
+    var note: UInt8 = 0
     switch event.keyCode {
     case 0: // a
         note = 0
@@ -153,20 +231,22 @@ let keyPressCallback: Callback = {event -> () in
     case 42: // \
         note = 19
     default:
-        note = 0
+        note = 255
     }
     
-    
+    if note == 255 {
+        return
+    }
     semaphore.wait()
     if event.type == NSEvent.EventType.keyDown {
-        if sounds[note] == nil || (sounds[note]?.isDead)! {
-            var s = Sound(pitch: pow(2.0, Double(note)/12) * 440, startTime: currentTime)
-            sounds[note] = s
+        if synth!.sounds[note] == nil || (synth!.sounds[note]?.isDead)! {
+            var s = Sound(pitch: pow(2.0, Double(note)/12) * 110, startTime: synth!.currentTime, velocity: 1)
+            synth!.sounds[note] = s
         }
     }
     if event.type == NSEvent.EventType.keyUp {
-        sounds[note]?.isDead = true
-        sounds[note]?.startTime = currentTime
+        synth!.sounds[note]?.isDead = true
+        synth!.sounds[note]?.startTime = synth!.currentTime
     }
     semaphore.signal()
     
@@ -198,11 +278,13 @@ func setUpSynth(synth: inout Synth){
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var synth: Synth?
+    
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         let window:NSWindow? = NSApplication.shared.windows.first
         (window as! SynthWindow).addKeyEventCallback(callback: keyPressCallback)
+        
+        initMidi()
         
         synth = Synth()
         setUpSynth(synth: &synth!)
