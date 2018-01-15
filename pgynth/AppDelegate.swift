@@ -13,15 +13,42 @@ import AudioUnit
 
 var synth: Synth?
 
+class LFF {
+    var last_value: Float32 = 0.0
+    var alpha: Float32
+    func filter(value: Float32) -> Float32 {
+        let result = alpha * value + (1 - alpha) * last_value
+        last_value = result
+        return result
+    }
+    init(frequency freq_: Float32, samplingRate sR: Float32) {
+        let dt = 1/sR
+        alpha = dt / (dt + (1/freq_))
+        Swift.print("alpha = \(alpha)")
+    }
+}
 
-struct Synth {
+class Overdrive {
+    func filter(value: Float32) -> Float32 {
+        if value > 0 {
+            return Float32(1 - exp(Double(-value)))
+        } else {
+            return Float32(-1 + exp(Double(-value)))
+        }
+    }
+}
+
+struct Synth {                        
     var outputUnit: AudioUnit? = nil
     var startingFrameCount: Double = 0
     var sounds = [UInt8: Sound]()
-    var waveType = 1
+    var waveType = 6
     var currentTime: Double = 0
+    var lastValue: Double = 0
     let SamplingRate = 44100
     var adsr : ADSR = ADSR()
+    var lff = LFF(frequency: 5000, samplingRate: 44100)
+    var overdrive = Overdrive()
 }
 
 struct ADSR {
@@ -156,7 +183,6 @@ func CheckError(error: OSStatus, operation: String) {
     exit(1)
 }
 
-// MARK: Callback function
 let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData) -> OSStatus in
     var synth = inRefCon.assumingMemoryBound(to: Synth.self)
     
@@ -170,27 +196,28 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
         for (note, sound) in synth.pointee.sounds {
             var sineFrequency = sound.pitch
             let cycleLength = Double(synth.pointee.SamplingRate) / sineFrequency
-            if synth.pointee.waveType == 0 {
+            if synth.pointee.waveType & 1 > 0 {
                 value += Float32(sound.getEnvelope(time: synth.pointee.currentTime)) * Float32(sin(2 * .pi * (j / cycleLength))) / 12
-            } else if synth.pointee.waveType == 1 {
+            }
+            if synth.pointee.waveType & 2 > 0 {
                 value += Float32(sound.getEnvelope(time: synth.pointee.currentTime)) * Float32(Int(j) % Int(cycleLength)) / (20 * Float32(cycleLength))
             }
-//            if Int(j) % 1000 == 0 {
-//                Swift.print("currenTime: \(currentTime))!")
-//                Swift.print("soundtie: \(sound.startTime - currentTime))!")
-//                Swift.print("Env val: \(sound.getEnvelope(time: currentTime))!")
-//            }
+            if synth.pointee.waveType & 4 > 0 {
+                var val = -1
+                if Int(j) % Int(cycleLength) < Int(cycleLength/4) {
+                    val = 1
+                }
+                value += Float32(sound.getEnvelope(time: synth.pointee.currentTime)) * Float32(val) / 20
+            }
         }
         synth.pointee.sounds = synth.pointee.sounds.filter({ (key: UInt8, value: Sound) -> Bool in
             value.shouldDelete == false
         })
         
-//
-//        if Int(j) % 1000 == 0 {
-//            Swift.print("sounds.cout: \(sounds.count))!")
-//        }
-        
         semaphore.signal()
+        
+        value = synth.pointee.lff.filter(value: value)
+        value = synth.pointee.overdrive.filter(value: value)
         
         buffers![0].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
         buffers![1].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
