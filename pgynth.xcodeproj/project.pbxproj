@@ -14,6 +14,11 @@
 		CF1F4D6C2008F11B0067C061 /* pgynthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1F4D6B2008F11B0067C061 /* pgynthTests.swift */; };
 		CF1F4D772008F11B0067C061 /* pgynthUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1F4D762008F11B0067C061 /* pgynthUITests.swift */; };
 		CFDE1E2F20092FC1007C63F4 /* SynthWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFDE1E2E20092FC1007C63F4 /* SynthWindow.swift */; };
+		CFDE1E31200D3A37007C63F4 /* Sound.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFDE1E30200D3A37007C63F4 /* Sound.swift */; };
+		CFDE1E33200D3A6C007C63F4 /* Filters.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFDE1E32200D3A6C007C63F4 /* Filters.swift */; };
+		CFDE1E35200D517B007C63F4 /* MIDIController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFDE1E34200D517B007C63F4 /* MIDIController.swift */; };
+		CFDE1E37200D59E9007C63F4 /* Synth.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFDE1E36200D59E9007C63F4 /* Synth.swift */; };
+		CFDE1E39200D5E54007C63F4 /* KeyboardInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFDE1E38200D5E54007C63F4 /* KeyboardInput.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +53,11 @@
 		CF1F4D762008F11B0067C061 /* pgynthUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = pgynthUITests.swift; sourceTree = "<group>"; };
 		CF1F4D782008F11B0067C061 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		CFDE1E2E20092FC1007C63F4 /* SynthWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynthWindow.swift; sourceTree = "<group>"; };
+		CFDE1E30200D3A37007C63F4 /* Sound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sound.swift; sourceTree = "<group>"; };
+		CFDE1E32200D3A6C007C63F4 /* Filters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Filters.swift; sourceTree = "<group>"; };
+		CFDE1E34200D517B007C63F4 /* MIDIController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIController.swift; sourceTree = "<group>"; };
+		CFDE1E36200D59E9007C63F4 /* Synth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Synth.swift; sourceTree = "<group>"; };
+		CFDE1E38200D5E54007C63F4 /* KeyboardInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardInput.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,11 +110,16 @@
 			children = (
 				CF1F4D582008F11B0067C061 /* AppDelegate.swift */,
 				CF1F4D5A2008F11B0067C061 /* ViewController.swift */,
+				CFDE1E34200D517B007C63F4 /* MIDIController.swift */,
 				CFDE1E2E20092FC1007C63F4 /* SynthWindow.swift */,
 				CF1F4D5C2008F11B0067C061 /* Assets.xcassets */,
 				CF1F4D5E2008F11B0067C061 /* Main.storyboard */,
 				CF1F4D612008F11B0067C061 /* Info.plist */,
 				CF1F4D622008F11B0067C061 /* pgynth.entitlements */,
+				CFDE1E30200D3A37007C63F4 /* Sound.swift */,
+				CFDE1E36200D59E9007C63F4 /* Synth.swift */,
+				CFDE1E32200D3A6C007C63F4 /* Filters.swift */,
+				CFDE1E38200D5E54007C63F4 /* KeyboardInput.swift */,
 			);
 			path = pgynth;
 			sourceTree = "<group>";
@@ -263,9 +278,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CFDE1E35200D517B007C63F4 /* MIDIController.swift in Sources */,
 				CF1F4D5B2008F11B0067C061 /* ViewController.swift in Sources */,
+				CFDE1E33200D3A6C007C63F4 /* Filters.swift in Sources */,
+				CFDE1E37200D59E9007C63F4 /* Synth.swift in Sources */,
 				CFDE1E2F20092FC1007C63F4 /* SynthWindow.swift in Sources */,
 				CF1F4D592008F11B0067C061 /* AppDelegate.swift in Sources */,
+				CFDE1E31200D3A37007C63F4 /* Sound.swift in Sources */,
+				CFDE1E39200D5E54007C63F4 /* KeyboardInput.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

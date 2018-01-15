@@ -10,25 +10,25 @@ import Foundation
 
 import Cocoa
 
-typealias Callback = (NSEvent) -> ()
-
 class SynthWindow: NSWindow {
+    var context : Synth?
     var keyEventListeners = Array<Callback>()
 
     override func keyDown(with event: NSEvent) {
 //        super.keyDown(with: event)
         for callback in keyEventListeners {
-            callback(event)
+            callback(context!, event)
         }
     }
     
     override func keyUp(with event: NSEvent) {
         for callback in keyEventListeners {
-            callback(event)
+            callback(context!, event)
         }
     }
     
-    func addKeyEventCallback(callback: @escaping Callback) {
+    func addKeyEventCallback(callback: @escaping Callback, context_: Synth) {
+        context = context_
         keyEventListeners.append(callback)
     }
 }
