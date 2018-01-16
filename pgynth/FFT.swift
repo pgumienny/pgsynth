@@ -14,7 +14,6 @@ import CoreImage
 
 // TODO
 // display the result
-// put the calculations into another thread
 // verify results
 
 
@@ -111,13 +110,13 @@ class FFT {
         buffer.removeSubrange(0..<FFT_size)
         semaphore.signal()
         DispatchQueue.global(qos: .userInitiated).async {
-            let start = DispatchTime.now()
+//            let start = DispatchTime.now()
             self.fft_helper(offset: 0, n: self.FFT_size)
-            let end = DispatchTime.now()
-            let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds // <<<<< Difference in nano seconds (UInt64)
-            let timeInterval = Double(nanoTime) / 1_000_000_000 // Technically could overflow for long running tests
+//            let end = DispatchTime.now()
+//            let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds // <<<<< Difference in nano seconds (UInt64)
+//            let timeInterval = Double(nanoTime) / 1_000_000_000 // Technically could overflow for long running tests
             
-            print("Time to calculate FFT =  \(timeInterval) seconds")
+//            print("Time to calculate FFT =  \(timeInterval) seconds")
             
             
     //        Swift.print("\(result[10].abs()) \(result[20].abs()) \(result[30].abs()) \(result[40].abs()) \(result[50].abs())")
