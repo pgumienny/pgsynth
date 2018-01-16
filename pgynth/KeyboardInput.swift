@@ -14,6 +14,7 @@ import AudioUnit
 
 typealias Callback = (Synth, NSEvent) -> ()
 
+
 let keyPressCallback: Callback = {synth, event -> () in
     var note: UInt8 = 0
     switch event.keyCode {
@@ -63,3 +64,7 @@ let keyPressCallback: Callback = {synth, event -> () in
     
     //    Swift.print("Caught a key: \(event.keyCode)!")
 }
+
+
+
+

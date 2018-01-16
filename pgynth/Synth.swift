@@ -10,6 +10,7 @@ import Foundation
 import CoreAudio
 import AudioToolbox
 import AudioUnit
+import CoreImage
 
 class Synth {
     var outputUnit: AudioUnit? = nil
@@ -23,6 +24,7 @@ class Synth {
     var lff = LFF(frequency: 1000, samplingRate: 44100)
     var overdrive = Overdrive()
     let semaphore = DispatchSemaphore(value: 1)
+    var fft = FFT()
     
 }
 
@@ -73,6 +75,11 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
         
         buffers![0].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
         buffers![1].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
+        synth.pointee.fft.push_value(v: value)
+        
+        if synth.pointee.fft.isFFTReady() {
+            synth.pointee.fft.calculateFFT()
+        }
         
         j += 1
         synth.pointee.currentTime = j / Double(synth.pointee.SamplingRate)
