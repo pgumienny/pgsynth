@@ -52,7 +52,7 @@ let keyPressCallback: Callback = {synth, event -> () in
     synth.semaphore.wait()
     if event.type == NSEvent.EventType.keyDown {
         if synth.sounds[note] == nil || (synth.sounds[note]?.isDead)! {
-            var s = Sound(pitch: Float32(pow(2.0, Double(note)/12)) * 110, startTime: synth.currentTime, velocity: 1, adsr: synth.adsr, waveType: 6)
+            var s = Sound(pitch: Float32(pow(2.0, Double(note)/12)) * 110, startTime: synth.currentTime, velocity: 1, adsr: synth.adsr, waveType: 1)
             synth.sounds[note] = s
         }
     }

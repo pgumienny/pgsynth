@@ -16,7 +16,7 @@ import CoreImage
 // display the result
 // put the calculations into another thread
 // make it threadsafe
-// debug the values
+// verify results
 
 
 struct complex {
@@ -49,7 +49,7 @@ class FFT {
     var buffer: [Float32]
     var result: [complex]
     var tmp: [complex]
-    let FFT_size = 4096
+    let FFT_size = 8192
     var bitmap: CGImage
     init(){
         buffer = []
@@ -71,7 +71,7 @@ class FFT {
             result[offset + i] = result[offset + 2 * i]
         }
         for i in 0..<n/2 {
-            result[offset + i + n/2] = result[offset + 2 * i + 1]
+            result[offset + i + n/2] = tmp[i]
         }
     }
     
@@ -102,7 +102,16 @@ class FFT {
         
         buffer.removeSubrange(0..<FFT_size)
         
-        Swift.print("\(result[10].abs()) \(result[20].abs()) \(result[30].abs()) \(result[40].abs()) \(result[50].abs())")
+//        Swift.print("\(result[10].abs()) \(result[20].abs()) \(result[30].abs()) \(result[40].abs()) \(result[50].abs())")
+        var max: Float32 = 0
+        var max_i: Int = 0
+        for i in 0..<FFT_size {
+            if result[i].abs() > max {
+                max_i = i
+                max = result[i].abs()
+            }
+        }
+        Swift.print("\(Float(max_i)*44100/Float32(FFT_size))")
         
     }
     func isFFTReady() -> Bool {
