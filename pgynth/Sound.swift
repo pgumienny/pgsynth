@@ -26,7 +26,7 @@ class Sound: NSObject {
     var filters: [Filter]
     init(pitch pitch_: Float32, startTime startTime_: Double, velocity velocity_: Float32, adsr adsr_: ADSR, waveType waveType_: Int) {
         filters = []
-        filters.append(LFF(frequency: pitch_*10, samplingRate: 44100))
+        filters.append(LFF(frequency: pitch_ * 8, samplingRate: 44100))
         pitch = pitch_
         startTime = startTime_
         velocity = velocity_
@@ -52,6 +52,9 @@ class Sound: NSObject {
                 val = 1
             }
             value += Float32(getEnvelope(time: time)) * Float32(val) / 20
+        }
+        for filter in filters {
+            value = filter.filter(value: value)
         }
         return value
     }

@@ -68,7 +68,7 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
         
         synth.pointee.semaphore.signal()
         
-                value = synth.pointee.lff.filter(value: value)
+//                value = synth.pointee.lff.filter(value: value)
 //                value = synth.pointee.overdrive.filter(value: value)
         
         buffers![0].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
