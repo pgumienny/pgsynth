@@ -15,7 +15,6 @@ import CoreImage
 // TODO
 // display the result
 // put the calculations into another thread
-// make it threadsafe
 // verify results
 
 
@@ -51,6 +50,8 @@ class FFT {
     var tmp: [complex]
     let FFT_size = 8192
     var bitmap: CGImage
+    let semaphore = DispatchSemaphore(value: 1)
+    let concurrencyLimitingSemaphore = DispatchSemaphore(value: 1)
     init(){
         buffer = []
         result = []
@@ -60,7 +61,15 @@ class FFT {
     }
     
     func push_value(v: Float32) {
+        semaphore.wait()
         buffer.append(v)
+        semaphore.signal()
+    }
+    
+    func push_values(v: [Float32]) {
+        semaphore.wait()
+        buffer.append(contentsOf: v)
+        semaphore.signal()
     }
     
     func separate(offset: Int, n: Int) {
@@ -93,29 +102,43 @@ class FFT {
     }
     
     func calculateFFT() {
+        concurrencyLimitingSemaphore.wait()
         result = [complex]()
+        semaphore.wait()
         for i in 0..<FFT_size {
             result.append(complex(r: buffer[i], i: 0))
         }
-        
-        fft_helper(offset: 0, n: FFT_size)
-        
         buffer.removeSubrange(0..<FFT_size)
-        
-//        Swift.print("\(result[10].abs()) \(result[20].abs()) \(result[30].abs()) \(result[40].abs()) \(result[50].abs())")
-        var max: Float32 = 0
-        var max_i: Int = 0
-        for i in 0..<FFT_size {
-            if result[i].abs() > max {
-                max_i = i
-                max = result[i].abs()
-            }
+        semaphore.signal()
+        DispatchQueue.global(qos: .userInitiated).async {
+            let start = DispatchTime.now()
+            self.fft_helper(offset: 0, n: self.FFT_size)
+            let end = DispatchTime.now()
+            let nanoTime = end.uptimeNanoseconds - start.uptimeNanoseconds // <<<<< Difference in nano seconds (UInt64)
+            let timeInterval = Double(nanoTime) / 1_000_000_000 // Technically could overflow for long running tests
+            
+            print("Time to calculate FFT =  \(timeInterval) seconds")
+            
+            
+    //        Swift.print("\(result[10].abs()) \(result[20].abs()) \(result[30].abs()) \(result[40].abs()) \(result[50].abs())")
+//            var max: Float32 = 0
+//            var max_i: Int = 0
+//            for i in 0..<self.FFT_size {
+//                if self.result[i].abs() > max {
+//                    max_i = i
+//                    max = self.result[i].abs()
+//                }
+//            }
+//            Swift.print("\(Float(max_i)*44100/Float32(self.FFT_size))")
+            self.concurrencyLimitingSemaphore.signal()
         }
-        Swift.print("\(Float(max_i)*44100/Float32(FFT_size))")
         
     }
     func isFFTReady() -> Bool {
-        return buffer.count >= FFT_size
+        semaphore.wait()
+        let ret = buffer.count >= FFT_size
+        semaphore.signal()
+        return ret
     }
     
 }

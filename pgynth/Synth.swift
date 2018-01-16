@@ -14,10 +14,10 @@ import CoreImage
 
 class Synth {
     var outputUnit: AudioUnit? = nil
-    var startingFrameCount: Double = 0
+    var startingFrameCount: Float32 = 0
     var sounds = [UInt8: Sound]()
     var waveType = 6
-    var currentTime: Double = 0
+    var currentTime: Float32 = 0
     var lastValue: Float32 = 0
     let SamplingRate = 44100
     var adsr : ADSR = ADSR()
@@ -56,9 +56,9 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
     var synth = inRefCon.assumingMemoryBound(to: Synth.self)
     
     var j = synth.pointee.startingFrameCount
-    synth.pointee.currentTime = Double(j) / Double(synth.pointee.SamplingRate)
+    synth.pointee.currentTime = Float32(j) / Float32(synth.pointee.SamplingRate)
+    var buffers = UnsafeMutableAudioBufferListPointer(ioData)
     for frame in 0..<inNumberFrames {
-        var buffers = UnsafeMutableAudioBufferListPointer(ioData)
         var value = Float32(0)
         synth.pointee.semaphore.wait()
         for (note, sound) in synth.pointee.sounds {
@@ -75,14 +75,18 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
         
         buffers![0].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
         buffers![1].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
-        synth.pointee.fft.push_value(v: value)
-        
-        if synth.pointee.fft.isFFTReady() {
-            synth.pointee.fft.calculateFFT()
-        }
+
         
         j += 1
-        synth.pointee.currentTime = j / Double(synth.pointee.SamplingRate)
+        synth.pointee.currentTime = j / Float32(synth.pointee.SamplingRate)
+    }
+    let floats = UnsafeRawPointer(buffers![0].mData!).bindMemory(to: Float32.self, capacity: Int(inNumberFrames))
+    let floatsBuffer = UnsafeBufferPointer(start: floats, count: Int(inNumberFrames))
+    let floatsArray = Array(floatsBuffer)
+    synth.pointee.fft.push_values(v: floatsArray)
+    
+    if synth.pointee.fft.isFFTReady() {
+        synth.pointee.fft.calculateFFT()
     }
     
     synth.pointee.startingFrameCount = j

@@ -36,9 +36,9 @@ class LFF : Filter {
 class Overdrive : Filter {
     func filter(value: Float32) -> Float32 {
         if value > 0 {
-            return Float32(1 - exp(Double(-value)))
+            return 1 - expf(-value)
         } else {
-            return Float32(-1 + exp(Double(-value)))
+            return -1 + expf(-value)
         }
     }
 }
