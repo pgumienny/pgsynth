@@ -108,18 +108,18 @@
 		CF1F4D572008F11B0067C061 /* pgynth */ = {
 			isa = PBXGroup;
 			children = (
-				CF1F4D582008F11B0067C061 /* AppDelegate.swift */,
-				CF1F4D5A2008F11B0067C061 /* ViewController.swift */,
-				CFDE1E34200D517B007C63F4 /* MIDIController.swift */,
-				CFDE1E2E20092FC1007C63F4 /* SynthWindow.swift */,
-				CF1F4D5C2008F11B0067C061 /* Assets.xcassets */,
-				CF1F4D5E2008F11B0067C061 /* Main.storyboard */,
-				CF1F4D612008F11B0067C061 /* Info.plist */,
 				CF1F4D622008F11B0067C061 /* pgynth.entitlements */,
-				CFDE1E30200D3A37007C63F4 /* Sound.swift */,
-				CFDE1E36200D59E9007C63F4 /* Synth.swift */,
+				CF1F4D612008F11B0067C061 /* Info.plist */,
+				CF1F4D582008F11B0067C061 /* AppDelegate.swift */,
 				CFDE1E32200D3A6C007C63F4 /* Filters.swift */,
 				CFDE1E38200D5E54007C63F4 /* KeyboardInput.swift */,
+				CFDE1E34200D517B007C63F4 /* MIDIController.swift */,
+				CFDE1E30200D3A37007C63F4 /* Sound.swift */,
+				CFDE1E36200D59E9007C63F4 /* Synth.swift */,
+				CFDE1E2E20092FC1007C63F4 /* SynthWindow.swift */,
+				CF1F4D5A2008F11B0067C061 /* ViewController.swift */,
+				CF1F4D5C2008F11B0067C061 /* Assets.xcassets */,
+				CF1F4D5E2008F11B0067C061 /* Main.storyboard */,
 			);
 			path = pgynth;
 			sourceTree = "<group>";

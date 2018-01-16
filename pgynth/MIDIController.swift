@@ -70,7 +70,7 @@ func handleNote( note:MIDIPacket, synth: UnsafeMutablePointer<Synth>?) {
     } else if operationType == 0x90 {
         if synth!.pointee.sounds[noteNumber] == nil || (synth!.pointee.sounds[noteNumber]?.isDead)! {
             let pitch = Float32(pow(2.0, (Double(noteNumber) - 69)/12)) * 440
-            let s = Sound(pitch: pitch, startTime: synth!.pointee.currentTime, velocity: Float32(velocity)/255, adsr: synth!.pointee.adsr)
+            let s = Sound(pitch: pitch, startTime: synth!.pointee.currentTime, velocity: Float32(velocity)/255, adsr: synth!.pointee.adsr, waveType: 6)
 //            Swift.print("sounds.cout: \(synth!.pointee.sounds.count))!")
 //            Swift.print("sound pitch: \(pitch)")
             synth!.pointee.sounds[noteNumber] = s

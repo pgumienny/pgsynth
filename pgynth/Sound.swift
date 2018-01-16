@@ -22,13 +22,38 @@ class Sound: NSObject {
     var velocity: Float32
     var adsr: ADSR
     var shouldDelete: Bool
-    init(pitch pitch_: Float32, startTime startTime_: Double, velocity velocity_: Float32, adsr adsr_: ADSR) {
+    var waveType: Int
+    var filters: [Filter]
+    init(pitch pitch_: Float32, startTime startTime_: Double, velocity velocity_: Float32, adsr adsr_: ADSR, waveType waveType_: Int) {
+        filters = []
+        filters.append(LFF(frequency: pitch_*10, samplingRate: 44100))
         pitch = pitch_
         startTime = startTime_
         velocity = velocity_
         adsr = adsr_
         isDead = false
         shouldDelete = false
+        waveType = waveType_
+    }
+    
+    func getSoundValue(time: Double) -> Float32 {
+        var value:Float = 0
+        let cycleLength = Double(44100) / Double(pitch)
+        let j = time * Double(44100)
+        if waveType & 1 > 0 {
+            value += Float32(getEnvelope(time: time)) * Float32(sin(2 * .pi * (j / cycleLength))) / 12
+        }
+        if waveType & 2 > 0 {
+            value += Float32(getEnvelope(time: time)) * Float32(Int(j) % Int(cycleLength)) / (20 * Float32(cycleLength))
+        }
+        if waveType & 4 > 0 {
+            var val = -1
+            if Int(j) % Int(cycleLength) < Int(cycleLength/4) {
+                val = 1
+            }
+            value += Float32(getEnvelope(time: time)) * Float32(val) / 20
+        }
+        return value
     }
     
     func getEnvelopeHelper(time: Double) -> Double {

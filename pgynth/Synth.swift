@@ -20,7 +20,7 @@ class Synth {
     var lastValue: Float32 = 0
     let SamplingRate = 44100
     var adsr : ADSR = ADSR()
-    var lff = LFF(frequency: 10000, samplingRate: 44100)
+    var lff = LFF(frequency: 1000, samplingRate: 44100)
     var overdrive = Overdrive()
     let semaphore = DispatchSemaphore(value: 1)
     
@@ -60,21 +60,7 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
         var value = Float32(0)
         synth.pointee.semaphore.wait()
         for (note, sound) in synth.pointee.sounds {
-            var sineFrequency = sound.pitch
-            let cycleLength = Double(synth.pointee.SamplingRate) / Double(sineFrequency)
-            if synth.pointee.waveType & 1 > 0 {
-                value += Float32(sound.getEnvelope(time: synth.pointee.currentTime)) * Float32(sin(2 * .pi * (j / cycleLength))) / 12
-            }
-            if synth.pointee.waveType & 2 > 0 {
-                value += Float32(sound.getEnvelope(time: synth.pointee.currentTime)) * Float32(Int(j) % Int(cycleLength)) / (20 * Float32(cycleLength))
-            }
-            if synth.pointee.waveType & 4 > 0 {
-                var val = -1
-                if Int(j) % Int(cycleLength) < Int(cycleLength/4) {
-                    val = 1
-                }
-                value += Float32(sound.getEnvelope(time: synth.pointee.currentTime)) * Float32(val) / 20
-            }
+            value += sound.getSoundValue(time: synth.pointee.currentTime)
         }
         synth.pointee.sounds = synth.pointee.sounds.filter({ (key: UInt8, value: Sound) -> Bool in
             value.shouldDelete == false
@@ -82,8 +68,8 @@ let SynthRenderProc: AURenderCallback = {(inRefCon, ioActionFlags, inTimeStamp, 
         
         synth.pointee.semaphore.signal()
         
-        //        value = synth.lff.filter(value: value)
-        //        value = synth.pointee.overdrive.filter(value: value)
+                value = synth.pointee.lff.filter(value: value)
+//                value = synth.pointee.overdrive.filter(value: value)
         
         buffers![0].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
         buffers![1].mData?.assumingMemoryBound(to: Float32.self)[Int(frame)] = value
