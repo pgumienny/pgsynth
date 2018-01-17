@@ -709,11 +709,11 @@
                         <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
-                            <slider horizontalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="HAP-dg-Dpu">
-                                <rect key="frame" x="40" y="156" width="19" height="96"/>
+                            <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="SNc-lk-scd" customClass="FFTView" customModule="pgynth" customModuleProvider="target">
+                                <rect key="frame" x="30" y="30" width="400" height="200"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <sliderCell key="cell" continuous="YES" alignment="left" maxValue="97" doubleValue="53" tickMarkPosition="right" sliderType="linear" id="r54-Bx-sbf"/>
-                            </slider>
+                                <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="Fuh-5d-MMX"/>
+                            </imageView>
                         </subviews>
                     </view>
                 </viewController>

@@ -27,7 +27,7 @@ class Sound: NSObject {
     var filters: [Filter]
     init(pitch pitch_: Float32, startTime startTime_: Double, velocity velocity_: Float32, adsr adsr_: ADSR, waveType waveType_: Int) {
         filters = []
-        filters.append(LFF(frequency: pitch_ * 2, samplingRate: 44100))
+        filters.append(LFF(frequency: pitch_ * 10, samplingRate: 44100))
         pitch = pitch_
         startTime = startTime_
         velocity = velocity_

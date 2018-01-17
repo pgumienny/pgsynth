@@ -11,6 +11,7 @@ import CoreAudio
 import AudioToolbox
 import AudioUnit
 
+var windowRef: NSWindow? = nil
 
 
 // MARK: Utility function
@@ -30,11 +31,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var midiC: MIDIController?
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        let window:NSWindow? = NSApplication.shared.windows.first
+        windowRef = window
         synth = Synth()
         setUpSynth(synth: &synth!)
         midiC = MIDIController(synth_: &synth!)
         
-        let window:NSWindow? = NSApplication.shared.windows.first
         (window as! SynthWindow).addKeyEventCallback(callback: keyPressCallback, context_: synth!)
         
         // Start playing

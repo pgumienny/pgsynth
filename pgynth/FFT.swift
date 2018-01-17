@@ -11,6 +11,7 @@ import CoreAudio
 import AudioToolbox
 import AudioUnit
 import CoreImage
+import AppKit
 
 // TODO
 // display the result
@@ -47,16 +48,26 @@ class FFT {
     var buffer: [Float32]
     var result: [complex]
     var tmp: [complex]
-    let FFT_size = 8192
-    var bitmap: CGImage
+    let FFT_size = 16*1024
+//    var bitmap: CGImage
+//    var img: NSImage
+//    var ctx: NSGraphicsContext
+//    var imgview: NSImageView
     let semaphore = DispatchSemaphore(value: 1)
     let concurrencyLimitingSemaphore = DispatchSemaphore(value: 1)
     init(){
         buffer = []
         result = []
         tmp = Array(repeating: complex(r: 0.0, i: 0.0), count: FFT_size/2)
-        let cgrect = CGRect(x: 300, y: 300, width: 300, height: 300)
-        bitmap = CIContext().createCGImage(CIImage(color: CIColor.black), from: cgrect)!
+    
+        
+        
+//        let cgrect = CGRect(x: 300, y: 300, width: 300, height: 300)
+//        bitmap = CIContext().createCGImage(CIImage(color: CIColor.black), from: cgrect)!
+//        img = NSImage(cgImage: bitmap, size: NSSize(width:300, height: 300))
+//        imgview = NSImageView(image: img)
+//        ctx = NSGraphicsContext(window: windowRef!)
+//        img.draw(in: NSRect(x: 300, y: 300, width: 300, height: 300))
     }
     
     func push_value(v: Float32) {
@@ -107,7 +118,7 @@ class FFT {
         for i in 0..<FFT_size {
             result.append(complex(r: buffer[i], i: 0))
         }
-        buffer.removeSubrange(0..<FFT_size)
+        buffer.removeSubrange(0..<2048)
         semaphore.signal()
         DispatchQueue.global(qos: .userInitiated).async {
 //            let start = DispatchTime.now()
@@ -129,6 +140,8 @@ class FFT {
 //                }
 //            }
 //            Swift.print("\(Float(max_i)*44100/Float32(self.FFT_size))")
+            
+            fftview!.update(data: self.result.map{$0.abs()}, resolutionMultplier: 0)
             self.concurrencyLimitingSemaphore.signal()
         }
         
